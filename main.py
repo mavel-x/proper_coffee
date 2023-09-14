@@ -1,6 +1,7 @@
 from pathlib import Path
 
-from fastapi import FastAPI, Depends, HTTPException
+import requests.exceptions
+from fastapi import FastAPI, Depends, HTTPException, status
 from sqlmodel import Session, SQLModel, create_engine, select
 
 from models import (
@@ -8,12 +9,12 @@ from models import (
     PlaceCreate,
     Location,
     LocationIn,
-    LocationReadWithDistance,
     PlaceReadWithLocation,
     PlaceReadWithDistance,
 )
 from settings import Settings
 from utils import get_or_create, haversine_distance
+from exceptions import GeocodingError
 
 
 DATABASE_PATH = Path('./test.sqlite3')
@@ -38,7 +39,12 @@ def get_db_session():
 
 @app.post("/places/")
 def create_place(place: PlaceCreate, session: Session = Depends(get_db_session)):
-    location_in = LocationIn.from_address(place.address, settings.geo_api)
+    try:
+        location_in = LocationIn.from_address(place.address, settings.geo_api)
+    except requests.exceptions.HTTPError as error:
+        raise HTTPException(status_code=error.response.status_code, detail=error.args[0])
+    except GeocodingError as error:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=error.args[0])
     location_db = get_or_create(session, Location, **location_in.dict())
     place_db = Place(**place.dict(), location_id=location_db.id)
     session.add(place_db)
@@ -58,20 +64,14 @@ def get_place(place_id: int, session: Session = Depends(get_db_session)):
 @app.post("/get-nearest/")
 def get_nearest(user_location: LocationIn, session: Session = Depends(get_db_session)):
     locations = session.exec(select(Location)).all()
-    distances = [haversine_distance(user_location.latitude, user_location.longitude,
-                                    loc.latitude, loc.longitude)
-                 for loc in locations]
-    locations_with_distances = [LocationReadWithDistance(**loc.dict(), distance=dist)
-                                for loc, dist in zip(locations, distances)]
-    nearest_locations = sorted(
-        locations_with_distances,
-        key=lambda loc: loc.distance,
-    )[:3]
-    nearest_loc_ids = [loc.id for loc in nearest_locations]
+    distances = {location.id: haversine_distance(user_location.latitude, user_location.longitude,
+                                                 location.latitude, location.longitude)
+                 for location in locations}
+    nearest_loc_ids = sorted(distances, key=distances.get)[:3]
     statement = select(Place).where(Place.location_id.in_(nearest_loc_ids))
     nearest_places = session.exec(statement).all()
-    nearest_places_with_distances = [PlaceReadWithDistance(**place.dict(), distance=location.distance)
-                                     for place, location
-                                     in zip(sorted(nearest_places, key=lambda place: place.id),
-                                            sorted(nearest_locations, key=lambda loc: loc.id))]
+    nearest_places_with_distances = [
+        PlaceReadWithDistance(**place.dict(), distance=distances[place.location_id], location=place.location.dict())
+        for place in nearest_places
+    ]
     return nearest_places_with_distances

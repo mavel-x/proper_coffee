@@ -4,6 +4,8 @@ from typing import Optional
 import requests
 from sqlmodel import SQLModel, Field, Relationship
 
+from exceptions import GeocodingError
+
 
 class LocationBase(SQLModel):
     latitude: Decimal
@@ -14,9 +16,13 @@ class Location(LocationBase, table=True):
     id: int = Field(default=None, primary_key=True)
     place: Optional['Place'] = Relationship(back_populates='location')
 
+    def __eq__(self, other):
+        if isinstance(other, Location):
+            return self.id == other.id
+        return NotImplemented
 
-class LocationRead(LocationBase):
-    id: int
+    def __hash__(self):
+        return hash(self.id)
 
 
 class LocationIn(LocationBase):
@@ -31,13 +37,9 @@ class LocationIn(LocationBase):
         response.raise_for_status()
         features = response.json()['features']
         if not features:
-            raise ValueError(f'Unable to geocode address: {address}')
+            raise GeocodingError(f'Unable to geocode address: {address}')
         properties = features[0]['properties']
         return cls(latitude=properties['lat'], longitude=properties['lon'])
-
-
-class LocationReadWithDistance(LocationRead):
-    distance: Decimal
 
 
 class PlaceBase(SQLModel):
@@ -62,7 +64,7 @@ class PlaceReadWithLocation(PlaceRead):
     location: Optional[LocationBase]
 
 
-class PlaceReadWithDistance(PlaceRead):
+class PlaceReadWithDistance(PlaceReadWithLocation):
     distance: Decimal
 
 

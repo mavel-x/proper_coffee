@@ -7,7 +7,6 @@ from models import Location, Place
 from main import app, get_db_session
 
 
-
 @pytest.fixture(name="session")
 def session_fixture():
     engine = create_engine(
@@ -30,14 +29,16 @@ def client_fixture(session: Session):
     app.dependency_overrides.clear()
 
 
-def test_get_nearest_coffee_shops(client, session):
+def test_get_nearest_places(client: TestClient, session: Session):
     location1 = Location(latitude=52.547250, longitude=13.358090)
     location2 = Location(latitude=52.543880, longitude=13.367920)
     location3 = Location(latitude=52.543861, longitude=13.377130)
+    location4 = Location(latitude=52.482568, longitude=13.441025)
 
     session.add(location1)
     session.add(location2)
     session.add(location3)
+    session.add(location4)
     session.commit()
 
     coffee_shop1 = Place(
@@ -55,10 +56,16 @@ def test_get_nearest_coffee_shops(client, session):
         address="Hochstraße 34, 13357 Berlin",
         location_id=location3.id
     )
+    coffee_shop4 = Place(
+        name="The Square",
+        address="Wildenbruchstr. 88, 12045 Berlin",
+        location_id=location4.id
+    )
 
     session.add(coffee_shop1)
     session.add(coffee_shop2)
     session.add(coffee_shop3)
+    session.add(coffee_shop4)
     session.commit()
 
     client = TestClient(app)

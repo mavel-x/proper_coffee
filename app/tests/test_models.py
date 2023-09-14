@@ -1,5 +1,6 @@
 import pytest
 
+from exceptions import GeocodingError
 from models import LocationIn
 from settings import Settings
 
@@ -15,5 +16,5 @@ def test_location_in_from_address():
 
 def test_location_in_from_address_invalid():
     address = 'wo;efuner;gjewrgpowefmiwe'
-    with pytest.raises(ValueError):
+    with pytest.raises(GeocodingError):
         LocationIn.from_address(address, settings.geo_api)
