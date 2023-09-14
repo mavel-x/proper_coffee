@@ -4,7 +4,7 @@ from geocoding import Geocoder, GeocodingError
 from models import LocationIn
 from settings import Settings
 
-settings = Settings(_env_file='../../.env')
+settings = Settings()
 
 
 @pytest.fixture()

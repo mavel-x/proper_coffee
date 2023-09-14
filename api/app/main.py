@@ -17,7 +17,8 @@ from settings import Settings
 from utils import get_or_create, haversine_distance
 
 
-DATABASE_PATH = Path('./test.sqlite3')
+BASE_DIR = Path(__file__).parent.parent
+DATABASE_PATH = BASE_DIR / 'test.sqlite3'
 DATABASE_URL = f'sqlite:///{DATABASE_PATH}'
 
 settings = Settings()
