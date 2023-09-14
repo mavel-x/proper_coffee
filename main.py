@@ -4,17 +4,17 @@ import requests.exceptions
 from fastapi import FastAPI, Depends, HTTPException, status
 from sqlmodel import Session, SQLModel, create_engine, select
 
+from geocoding import Geocoder, GeocodingError
 from models import (
-    Place,
-    PlaceCreate,
     Location,
     LocationIn,
+    Place,
+    PlaceCreate,
     PlaceReadWithLocation,
     PlaceReadWithDistance,
 )
 from settings import Settings
 from utils import get_or_create, haversine_distance
-from exceptions import GeocodingError
 
 
 DATABASE_PATH = Path('./test.sqlite3')
@@ -26,6 +26,7 @@ app = FastAPI()
 
 @app.on_event("startup")
 def on_startup():
+    app.state.geocoder = Geocoder(api_key=settings.geo_api)
     app.state.engine = create_engine(DATABASE_URL)
     SQLModel.metadata.create_all(app.state.engine)
 
@@ -37,12 +38,13 @@ def get_db_session():
 
 @app.post("/places/")
 def create_place(place: PlaceCreate, session: Session = Depends(get_db_session)):
+    geocoder = app.state.geocoder
     try:
-        location_in = LocationIn.from_address(place.address, settings.geo_api)
+        location_in = LocationIn(**geocoder.geocode(place.address))
     except requests.exceptions.HTTPError as error:
         raise HTTPException(status_code=error.response.status_code, detail=error.args[0])
     except GeocodingError as error:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=error.args[0])
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error.args[0])
     location_db = get_or_create(session, Location, **location_in.dict())
     place_db = Place(**place.dict(), location_id=location_db.id)
     session.add(place_db)
