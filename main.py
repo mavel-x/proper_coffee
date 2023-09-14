@@ -19,7 +19,6 @@ from exceptions import GeocodingError
 
 DATABASE_PATH = Path('./test.sqlite3')
 DATABASE_URL = f'sqlite:///{DATABASE_PATH}'
-engine = None
 
 settings = Settings()
 app = FastAPI()
@@ -27,13 +26,12 @@ app = FastAPI()
 
 @app.on_event("startup")
 def on_startup():
-    global engine
-    engine = create_engine(DATABASE_URL)
-    SQLModel.metadata.create_all(engine)
+    app.state.engine = create_engine(DATABASE_URL)
+    SQLModel.metadata.create_all(app.state.engine)
 
 
 def get_db_session():
-    with Session(engine) as session:
+    with Session(app.state.engine) as session:
         yield session
 
 
