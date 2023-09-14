@@ -1,3 +1,4 @@
+from decimal import Decimal
 from typing import Optional
 
 import requests
@@ -5,8 +6,17 @@ from sqlmodel import SQLModel, Field, Relationship
 
 
 class LocationBase(SQLModel):
-    latitude: float
-    longitude: float
+    latitude: Decimal
+    longitude: Decimal
+
+
+class Location(LocationBase, table=True):
+    id: int = Field(default=None, primary_key=True)
+    place: Optional['Place'] = Relationship(back_populates='location')
+
+
+class LocationRead(LocationBase):
+    id: int
 
 
 class LocationIn(LocationBase):
@@ -26,9 +36,8 @@ class LocationIn(LocationBase):
         return cls(latitude=properties['lat'], longitude=properties['lon'])
 
 
-class Location(LocationBase, table=True):
-    id: int = Field(default=None, primary_key=True)
-    place: Optional['Place'] = Relationship(back_populates='location')
+class LocationReadWithDistance(LocationRead):
+    distance: Decimal
 
 
 class PlaceBase(SQLModel):
@@ -43,6 +52,18 @@ class Place(PlaceBase, table=True):
     id: int = Field(default=None, primary_key=True)
     location_id: int = Field(foreign_key="location.id")
     location: Location = Relationship(back_populates='place')
+
+
+class PlaceRead(PlaceBase):
+    id: int
+
+
+class PlaceReadWithLocation(PlaceRead):
+    location: Optional[LocationBase]
+
+
+class PlaceReadWithDistance(PlaceRead):
+    distance: Decimal
 
 
 class PlaceCreate(PlaceBase):

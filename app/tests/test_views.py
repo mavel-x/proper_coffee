@@ -1,31 +1,44 @@
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy.pool import StaticPool
 from sqlmodel import Session, create_engine, SQLModel
 
 from models import Location, Place
-from main import app
+from main import app, get_db_session
 
 
-engine = create_engine('sqlite:///:memory:')
 
-
-@pytest.fixture()
-def test_session():
+@pytest.fixture(name="session")
+def session_fixture():
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
     SQLModel.metadata.create_all(engine)
     with Session(engine) as session:
         yield session
-    SQLModel.metadata.drop_all(engine)
 
 
-def test_get_nearest_coffee_shops(test_session):
+@pytest.fixture(name="client")
+def client_fixture(session: Session):
+    def get_session_override():
+        return session
+    app.dependency_overrides[get_db_session] = get_session_override
+    client = TestClient(app)
+    yield client
+    app.dependency_overrides.clear()
+
+
+def test_get_nearest_coffee_shops(client, session):
     location1 = Location(latitude=52.547250, longitude=13.358090)
     location2 = Location(latitude=52.543880, longitude=13.367920)
     location3 = Location(latitude=52.543861, longitude=13.377130)
 
-    test_session.add(location1)
-    test_session.add(location2)
-    test_session.add(location3)
-    test_session.commit()
+    session.add(location1)
+    session.add(location2)
+    session.add(location3)
+    session.commit()
 
     coffee_shop1 = Place(
         name="The Visit Coffee",
@@ -43,16 +56,17 @@ def test_get_nearest_coffee_shops(test_session):
         location_id=location3.id
     )
 
-    test_session.add(coffee_shop1)
-    test_session.add(coffee_shop2)
-    test_session.add(coffee_shop3)
-    test_session.commit()
+    session.add(coffee_shop1)
+    session.add(coffee_shop2)
+    session.add(coffee_shop3)
+    session.commit()
 
     client = TestClient(app)
     response = client.post("/get-nearest/", json={"latitude": 52.550665, "longitude": 13.352322})
 
     assert response.status_code == 200
-    assert len(response.json()) == 3
-    assert response.json()[0]["name"] == "The Visit Coffee"
-    assert response.json()[1]["name"] == "Coffee Circle Cafe"
-    assert response.json()[2]["name"] == "Flying Roasters"
+    places = response.json()
+    assert len(places) == 3
+    assert places[0]["name"] == "The Visit Coffee"
+    assert places[1]["name"] == "Coffee Circle Cafe"
+    assert places[2]["name"] == "Flying Roasters"
