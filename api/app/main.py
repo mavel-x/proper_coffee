@@ -18,7 +18,8 @@ from app.utils import get_or_create, haversine_distance
 
 
 BASE_DIR = Path(__file__).parent.parent
-DATABASE_PATH = BASE_DIR / 'test.sqlite3'
+DATA_DIR = BASE_DIR / 'data'
+DATABASE_PATH = DATA_DIR / 'test.sqlite3'
 DATABASE_URL = f'sqlite:///{DATABASE_PATH}'
 
 settings = Settings()
@@ -28,6 +29,7 @@ app = FastAPI()
 @app.on_event("startup")
 def on_startup():
     app.state.geocoder = Geocoder(api_key=settings.geo_api)
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
     app.state.engine = create_engine(DATABASE_URL)
     SQLModel.metadata.create_all(app.state.engine)
 

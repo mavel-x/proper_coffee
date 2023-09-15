@@ -1,0 +1,17 @@
+version: '3.7'
+
+services:
+  api:
+    image: mavelx/proper_coffee_api:latest
+    environment:
+      - GEO_API=${GEO_API}
+    volumes:
+      - ./container_data:/app/data
+    restart: unless-stopped
+
+  bots:
+    image: mavelx/proper_coffee_bot:latest
+    environment:
+      - TG_TOKEN=${TG_TOKEN}
+      - API_HOST=api
+    restart: unless-stopped
