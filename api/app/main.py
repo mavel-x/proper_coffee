@@ -4,8 +4,8 @@ import requests.exceptions
 from fastapi import FastAPI, Depends, HTTPException, status
 from sqlmodel import Session, SQLModel, create_engine, select
 
-from geocoding import Geocoder, GeocodingError
-from models import (
+from app.geocoding import Geocoder, GeocodingError
+from app.models import (
     Location,
     LocationIn,
     Place,
@@ -13,8 +13,8 @@ from models import (
     PlaceReadWithLocation,
     PlaceReadWithDistance,
 )
-from settings import Settings
-from utils import get_or_create, haversine_distance
+from app.settings import Settings
+from app.utils import get_or_create, haversine_distance
 
 
 BASE_DIR = Path(__file__).parent.parent
