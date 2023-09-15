@@ -75,4 +75,4 @@ def get_nearest(user_location: LocationIn, session: Session = Depends(get_db_ses
         PlaceReadWithDistance(**place.dict(), distance=distances[place.location_id], location=place.location.dict())
         for place in nearest_places
     ]
-    return nearest_places_with_distances
+    return sorted(nearest_places_with_distances, key=lambda place: place.distance)
