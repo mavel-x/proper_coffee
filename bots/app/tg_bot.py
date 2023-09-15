@@ -31,7 +31,13 @@ async def nearest_places(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     client: PlacesClient = context.bot_data['places_client']
     places: list[Place] = client.get_nearest_places(**update.message.location.to_dict())
     for place in places:
-        await update.message.reply_text(place.create_bot_message())
+        text = place.create_bot_message()
+        if place.photo_url:
+            message = await update.message.reply_photo(photo=place.photo_url, caption=text)
+        else:
+            message = await update.message.reply_text(text)
+        await update.message.reply_location(latitude=place.location.latitude, longitude=place.location.longitude,
+                                            reply_to_message_id=message.id)
 
 
 def main() -> None:
