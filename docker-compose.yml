@@ -5,9 +5,16 @@ services:
     image: mavelx/proper_coffee_api:latest
     environment:
       - GEO_API=${GEO_API}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_DB=${POSTGRES_DB}
     volumes:
       - ./container_data:/app/data
     restart: unless-stopped
+    depends_on:
+      - db
 
   bots:
     image: mavelx/proper_coffee_bot:latest
@@ -15,3 +22,17 @@ services:
       - TG_TOKEN=${TG_TOKEN}
       - API_HOST=api
     restart: unless-stopped
+
+  db:
+    image: postgres:15.4
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_DB=${POSTGRES_DB}
+    restart: unless-stopped
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

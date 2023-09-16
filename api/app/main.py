@@ -1,8 +1,6 @@
-from pathlib import Path
-
 import requests.exceptions
 from fastapi import FastAPI, Depends, HTTPException, status
-from sqlmodel import Session, SQLModel, create_engine, select
+from sqlmodel import create_engine, Session, select, SQLModel
 
 from app.geocoding import Geocoder, GeocodingError
 from app.models import (
@@ -13,14 +11,9 @@ from app.models import (
     PlaceReadWithLocation,
     PlaceReadWithDistance,
 )
-from app.settings import Settings
+from app.settings import Settings, DatabaseType
 from app.utils import get_or_create, haversine_distance
 
-
-BASE_DIR = Path(__file__).parent.parent
-DATA_DIR = BASE_DIR / 'data'
-DATABASE_PATH = DATA_DIR / 'test.sqlite3'
-DATABASE_URL = f'sqlite:///{DATABASE_PATH}'
 
 settings = Settings()
 app = FastAPI()
@@ -29,8 +22,10 @@ app = FastAPI()
 @app.on_event("startup")
 def on_startup():
     app.state.geocoder = Geocoder(api_key=settings.geo_api)
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
-    app.state.engine = create_engine(DATABASE_URL)
+
+    if settings.db_type == DatabaseType.SQLITE:
+        settings.data_dir.mkdir(parents=True, exist_ok=True)
+    app.state.engine = create_engine(settings.database_url)
     SQLModel.metadata.create_all(app.state.engine)
 
 
