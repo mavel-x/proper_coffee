@@ -43,10 +43,10 @@ all the files you need in the project dir are:
 
 ### Load data
 If you have a `places_dump.sql` file, use it to populate the database before 
-you launch the services:
+you launch the services (change `db_user` to the username you chose earlier):
 ```shell
 docker compose up -d db
-cat places_dump.sql | docker compose exec -T db psql -U postgres -d places
+cat places_dump.sql | docker compose exec -T db psql -U db_user -d places
 ```
 
 ### Launch
