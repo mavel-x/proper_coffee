@@ -1,7 +1,7 @@
 import pytest
 
 from app.geocoding import Geocoder, GeocodingError
-from app.models import LocationIn
+from app.models.places import LocationIn
 from app.settings import Settings
 
 settings = Settings()

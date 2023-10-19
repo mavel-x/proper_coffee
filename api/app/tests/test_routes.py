@@ -3,8 +3,9 @@ from fastapi.testclient import TestClient
 from sqlalchemy.pool import StaticPool
 from sqlmodel import Session, create_engine, SQLModel
 
-from app.models import Location, Place
-from app.main import app, get_db_session
+from app.dependencies import SessionDropIn
+from app.models.places import Location, Place
+from app.main import app
 
 
 @pytest.fixture(name="session")
@@ -23,7 +24,7 @@ def session_fixture():
 def client_fixture(session: Session):
     def get_session_override():
         return session
-    app.dependency_overrides[get_db_session] = get_session_override
+    app.dependency_overrides[SessionDropIn] = get_session_override
     client = TestClient(app)
     yield client
     app.dependency_overrides.clear()
