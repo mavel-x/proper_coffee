@@ -1,4 +1,4 @@
-import requests.exceptions
+import httpx
 from fastapi import FastAPI, Depends, HTTPException, status
 from sqlmodel import create_engine, Session, select, SQLModel
 
@@ -39,10 +39,13 @@ def create_place(place: PlaceCreate, session: Session = Depends(get_db_session))
     geocoder = app.state.geocoder
     try:
         location_in = LocationIn(**geocoder.geocode(place.address))
-    except requests.exceptions.HTTPError as error:
-        raise HTTPException(status_code=error.response.status_code, detail=error.args[0])
+    except httpx.HTTPError:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail='The geocoding service is unavailable. Please try again later.'
+        )
     except GeocodingError as error:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error.args[0])
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=error.args[0])
     location_db = get_or_create(session, Location, **location_in.dict())
     place_db = Place(**place.dict(), location_id=location_db.id)
     session.add(place_db)

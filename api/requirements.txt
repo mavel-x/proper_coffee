@@ -5,5 +5,4 @@ sqlalchemy==1.4.41
 sqlmodel==0.0.8
 pytest==7.4.2
 httpx==0.24.1
-requests==2.31.0
 psycopg2==2.9.7

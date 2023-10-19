@@ -1,4 +1,4 @@
-import requests
+import httpx
 
 from models import Place
 
@@ -9,6 +9,6 @@ class PlacesClient:
 
     def get_nearest_places(self, latitude: float, longitude: float):
         payload = {'latitude': latitude, 'longitude': longitude}
-        response = requests.post(self.api_url, json=payload)
+        response = httpx.post(self.api_url, json=payload)
         response.raise_for_status()
         return [Place(**loc) for loc in response.json()]

@@ -1,4 +1,4 @@
-import requests
+import httpx
 
 from .exceptions import GeocodingError
 
@@ -14,7 +14,7 @@ class Geocoder:
             'text': address,
             'apiKey': self.api_key,
         }
-        response = requests.get(self.api_url, params=params)
+        response = httpx.get(self.api_url, params=params)
         response.raise_for_status()
         features = response.json()['features']
         if not features:
