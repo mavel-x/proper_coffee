@@ -13,15 +13,24 @@ permissions:
 jobs:
   api:
     runs-on: ubuntu-latest
-    if: contains(github.event.head_commit.modified, 'api/')
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
+      - name: Path Filter
+        uses: dorny/paths-filter@v2
+        id: filter
+        with:
+          filters: |
+            api:
+              - 'api/**'
+
       - name: Login to GitHub Container Registry
+        if: steps.filter.outputs.api == 'true'
         run: echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Build and push Docker image
+        if: steps.filter.outputs.api == 'true'
         run: |
           cd api/
           IMAGE_NAME=ghcr.io/${{ github.repository_owner }}/proper_coffee_api:latest
@@ -30,15 +39,24 @@ jobs:
 
   bots:
     runs-on: ubuntu-latest
-    if: contains(github.event.head_commit.modified, 'bots/')
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
+      - name: Path Filter
+        uses: dorny/paths-filter@v2
+        id: filter
+        with:
+          filters: |
+            bots:
+              - 'bots/**'
+
       - name: Login to GitHub Container Registry
+        if: steps.filter.outputs.bots == 'true'
         run: echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Build and push Docker image
+        if: steps.filter.outputs.bots == 'true'
         run: |
           cd bots/
           IMAGE_NAME=ghcr.io/${{ github.repository_owner }}/proper_coffee_bot:latest
