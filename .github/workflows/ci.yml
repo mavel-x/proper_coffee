@@ -12,7 +12,8 @@ permissions:
 jobs:
   api:
     runs-on: ubuntu-latest
-
+    env:
+      DB_TYPE: sqlite
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
