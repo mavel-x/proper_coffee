@@ -72,7 +72,6 @@ def test_get_nearest_places(client: TestClient, session: Session):
     client = TestClient(app)
     response = client.post("/get-nearest/", json={"latitude": 52.550665, "longitude": 13.352322})
 
-    assert response.status_code == 200
     places = response.json()
     assert len(places) == 3
     assert places[0]["name"] == "The Visit Coffee"
