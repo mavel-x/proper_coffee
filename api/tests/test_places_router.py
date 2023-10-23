@@ -4,7 +4,7 @@ from sqlalchemy.pool import StaticPool
 from sqlalchemy.orm import Session
 from sqlalchemy import create_engine
 
-from app.dependencies import SessionDropIn
+from app.dependencies import SessionDropIn, get_geocoder
 from app.models import Base
 from app.main import app
 from app.repositories import LocationRepository, PlaceRepository
@@ -63,46 +63,49 @@ def session_fixture():
 
 
 @pytest.fixture
-def mock_geocoder(monkeypatch):
+def mock_geocoder():
     class MockGeocoder:
         def geocode(self, address):
             return Location(latitude=45.45, longitude=54.54)
-
-    def mock_get_geocoder():
-        return MockGeocoder()
-
-    monkeypatch.setattr('app.routers.places.get_geocoder', mock_get_geocoder)
+    return MockGeocoder()
 
 
 @pytest.fixture(name="client")
-def client_fixture(session: Session):
+def client_fixture(session, mock_geocoder):
     def get_session_override():
         return session
-    app.dependency_overrides[SessionDropIn] = get_session_override
+
+    def get_geocoder_override():
+        return mock_geocoder
+
+    app.dependency_overrides.update({
+        SessionDropIn: get_session_override,
+        get_geocoder: get_geocoder_override,
+    })
     client = TestClient(app)
     yield client
     app.dependency_overrides.clear()
 
 
-def test_create_place(client: TestClient, mock_geocoder, session):
+def test_create_place(client: TestClient, session: Session):
     place_data = {
         "name": "Test Place",
         "address": "123 Test Street",
     }
     response = client.post("/places/", json=place_data)
-    place_in_db = PlaceRepository(session).get_all(name=place_data['name'])[0]
     assert response.status_code == 200
+    place_in_db = PlaceRepository(session).get_all(name=place_data['name'])[0]
     assert response.json()['address'] == "123 Test Street"
     assert place_in_db.address == "123 Test Street"
 
 
-def test_get_place(client: TestClient, session):
+def test_get_place(client: TestClient, session: Session):
     response = client.get("places/1")
     place = response.json()
     assert place['name'] == "The Visit Coffee"
 
 
-def test_get_place_404(client: TestClient, session):
+def test_get_place_404(client: TestClient, session: Session):
     response = client.get("places/101")
     assert response.status_code == 404
 
