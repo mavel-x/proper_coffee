@@ -1,15 +1,17 @@
 from pathlib import Path
 
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     tg_token: str | None = None
-    api_host = str = '127.0.0.1'
-    api_port = int = 8000
+    api_host: str = '127.0.0.1'
+    api_port: int = 8000
 
-    class Config:
-        env_file = Path(__file__).parent.parent.parent / '.env'
+    model_config = SettingsConfigDict(
+        env_file=Path(__file__).parents[2] / '.env',
+        extra='ignore'
+    )
 
     @property
     def api_url(self):
