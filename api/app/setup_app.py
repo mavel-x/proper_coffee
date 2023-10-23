@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from sqlmodel import Session
+from sqlalchemy.orm import Session
 
 from app.database import create_db_engine
 from app.dependencies import SessionDropIn

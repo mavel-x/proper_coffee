@@ -1,5 +1,7 @@
 from pathlib import Path
-from pydantic import BaseSettings, root_validator
+
+from pydantic import model_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from enum import Enum
 
 
@@ -16,18 +18,20 @@ class Settings(BaseSettings):
     postgres_port: int | None = 5432
     postgres_db: str | None = 'places'
     db_type: DatabaseType = DatabaseType.PROD
-    data_dir = Path(__file__).parent.parent / 'data'
+    data_dir: Path = Path(__file__).parents[1] / 'data'
 
-    class Config:
-        env_file = Path(__file__).parent.parent.parent / '.env'
+    model_config = SettingsConfigDict(
+        env_file=Path(__file__).parents[2] / '.env',
+        extra='ignore'
+    )
 
-    @root_validator
-    def check_postgres_credentials(cls, values):
-        if values.get('db_type') == DatabaseType.PROD:
-            if not all((values.get('postgres_user'), values.get('postgres_password'))):
+    @model_validator(mode='after')
+    def check_postgres_credentials(self):
+        if self.db_type == DatabaseType.PROD:
+            if not all([self.postgres_user, self.postgres_password]):
                 raise ValueError('Missing Postgres credentials. '
                                  'Set DB_TYPE to "sqlite" if you do not want to use Postgres.')
-        return values
+        return self
 
     @property
     def database_url(self) -> str:

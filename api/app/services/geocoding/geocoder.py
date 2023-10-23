@@ -1,5 +1,7 @@
 import httpx
 
+from app.schemata.location import Location
+
 from .exceptions import GeocodingError
 
 
@@ -9,7 +11,7 @@ class Geocoder:
     def __init__(self, api_key):
         self.api_key = api_key
 
-    def geocode(self, address) -> dict[str, float]:
+    def geocode(self, address) -> Location:
         params = {
             'text': address,
             'apiKey': self.api_key,
@@ -20,7 +22,7 @@ class Geocoder:
         if not features:
             raise GeocodingError(f'Unable to geocode address: {address}')
         properties = features[0]['properties']
-        return {
+        return Location.model_validate({
             'latitude': properties['lat'],
             'longitude': properties['lon'],
-        }
+        })
