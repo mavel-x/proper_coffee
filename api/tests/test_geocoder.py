@@ -2,8 +2,8 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from app.geocoding import Geocoder, GeocodingError
-from app.models.places import LocationIn
+from app.services.geocoding import Geocoder, GeocodingError
+from app.schemata.location import Location
 
 from .geocoder_responses import features_mueller, features_garbage
 
@@ -28,10 +28,9 @@ def geocoder():
 
 def test_location_in_from_address(geocoder: Geocoder):
     address = 'Müllerstraße 28, 13353 Berlin'
-    expected = LocationIn(latitude=52.5472567, longitude=13.3580691)
+    expected = Location(latitude=52.5472567, longitude=13.3580691)
     with patch('httpx.get', side_effect=mock_httpx_get):
-        coordinates = geocoder.geocode(address)
-    actual = LocationIn(**coordinates)
+        actual = geocoder.geocode(address)
     assert expected == actual
 
 

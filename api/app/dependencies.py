@@ -3,7 +3,7 @@ from typing import Annotated
 
 from fastapi import Depends
 
-from app.geocoding import Geocoder
+from app.services.geocoding import Geocoder
 from app.settings import Settings
 
 
