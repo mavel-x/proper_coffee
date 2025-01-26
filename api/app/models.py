@@ -1,11 +1,11 @@
-from decimal import Decimal
 from typing import Optional
 
+from geoalchemy2 import Geography, WKBElement
+from geoalchemy2.shape import to_shape
 from pydantic import BaseModel
-from sqlalchemy import ForeignKey
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy import TIMESTAMP, func
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
-from app.schemas.location import Location, LocationDB
 from app.schemas.place import PlaceDB, PlaceDBCreate
 
 
@@ -21,40 +21,47 @@ class Base(DeclarativeBase):
         raise NotImplementedError
 
 
-class LocationOrm(Base):
-    __tablename__ = "location"
-
-    latitude: Mapped[Decimal]
-    longitude: Mapped[Decimal]
-    place: Mapped["PlaceOrm"] = relationship(back_populates="location")
-
-    @classmethod
-    def from_create_schema(cls, location: Location) -> "LocationOrm":
-        return cls(**location.model_dump())
-
-    def to_db_schema(self) -> LocationDB:
-        return LocationDB.model_validate(self.__dict__)
-
-
 class PlaceOrm(Base):
-    __tablename__ = "place"
+    __tablename__ = "places"
 
-    name: Mapped[str]
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    created_at: Mapped[Optional[str]] = mapped_column(
+        TIMESTAMP,
+        nullable=False,
+        server_default=func.now(),
+    )
+    updated_at: Mapped[Optional[str]] = mapped_column(
+        TIMESTAMP,
+        nullable=False,
+        server_default=func.now(),
+    )
+    name: Mapped[str] = mapped_column(nullable=False)
+    address: Mapped[Optional[str]] = mapped_column(nullable=False)
+    location: Mapped[WKBElement] = mapped_column(
+        Geography(geometry_type="POINT", srid=4326),
+        nullable=False,
+        unique=True,
+    )
     description: Mapped[Optional[str]] = mapped_column(default="")
-    photo_url: Mapped[Optional[str]] = mapped_column(default="")
-    instagram_link: Mapped[Optional[str]] = mapped_column(default="")
-    address: Mapped[str]
-    location_id: Mapped[int] = mapped_column(ForeignKey("location.id", ondelete="CASCADE"))
-    location: Mapped["LocationOrm"] = relationship(back_populates="place")
+    image_url: Mapped[Optional[str]] = mapped_column(default="")
+    ig_url: Mapped[Optional[str]] = mapped_column(default="")
+    website_url: Mapped[Optional[str]] = mapped_column(default="")
+    verified: Mapped[bool] = mapped_column(default=False)
 
     @classmethod
     def from_create_schema(cls, place: PlaceDBCreate) -> "PlaceOrm":
         place_dict = place.model_dump()
-        place_dict.pop("location")
-        place_dict["location_id"] = place.location.id
+        lat = place_dict.pop("latitude")
+        lon = place_dict.pop("longitude")
+        place_dict["location"] = f"SRID=4326;POINT({lon} {lat})"
         return cls(**place_dict)
 
     def to_db_schema(self) -> PlaceDB:
-        place_dict = self.__dict__
-        place_dict.update({"location": LocationDB.model_validate(self.location.__dict__)})
+        point = to_shape(self.location)  # Converts to Shapely Point
+        lat, lon = point.y, point.x
+
+        place_dict = self.__dict__.copy()
+        place_dict["latitude"] = lat
+        place_dict["longitude"] = lon
+
         return PlaceDB.model_validate(place_dict)
