@@ -1,5 +1,4 @@
 from _decimal import Decimal
-
 from pydantic import BaseModel
 
 

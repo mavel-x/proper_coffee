@@ -1,0 +1,26 @@
+line-length = 120
+fix = true
+
+[lint]
+select = [
+    # pycodestyle
+    "E",
+    # Pyflakes
+    "F",
+    # pyupgrade
+    "UP",
+    # flake8-bugbear
+    "B",
+    # flake8-simplify
+    "SIM",
+    # isort
+    "I",
+]
+
+[lint.per-file-ignores]
+"__init__.py" = ["F401"]
+"**/tests/**" = [
+    "F401",  # Module imported but unused
+    "F811",  # Redefinition of unused name
+    "E501",  # Line too long
+]

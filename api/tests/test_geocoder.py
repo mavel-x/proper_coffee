@@ -1,41 +1,39 @@
 from unittest.mock import Mock, patch
 
 import pytest
-
+from app.schemas.location import Location
 from app.services.geocoding import Geocoder, GeocodingError
-from app.schemata.location import Location
 
-from .geocoder_responses import features_mueller, features_garbage
+from .geocoder_responses import features_garbage, features_mueller
 
 
 def mock_httpx_get(*args, **kwargs):
-    address = kwargs['params']['text']
+    address = kwargs["params"]["text"]
     mock_response = Mock()
-    if address == 'Müllerstraße 28, 13353 Berlin':
-        mock_response.json.return_value = {'features': features_mueller}
-    elif address == 'wo;efuner;gjewrgpowefmiwe':
-        mock_response.json.return_value = {'features': features_garbage}
+    if address == "Müllerstraße 28, 13353 Berlin":
+        mock_response.json.return_value = {"features": features_mueller}
+    elif address == "wo;efuner;gjewrgpowefmiwe":
+        mock_response.json.return_value = {"features": features_garbage}
     else:
-        mock_response.json.return_value = {'features': []}
+        mock_response.json.return_value = {"features": []}
     mock_response.status_code = 200
     return mock_response
 
 
 @pytest.fixture()
 def geocoder():
-    return Geocoder(api_key='test-key')
+    return Geocoder(api_key="test-key")
 
 
 def test_location_in_from_address(geocoder: Geocoder):
-    address = 'Müllerstraße 28, 13353 Berlin'
+    address = "Müllerstraße 28, 13353 Berlin"
     expected = Location(latitude=52.5472567, longitude=13.3580691)
-    with patch('httpx.get', side_effect=mock_httpx_get):
+    with patch("httpx.get", side_effect=mock_httpx_get):
         actual = geocoder.geocode(address)
     assert expected == actual
 
 
 def test_location_in_from_address_invalid(geocoder: Geocoder):
-    address = 'wo;efuner;gjewrgpowefmiwe'
-    with pytest.raises(GeocodingError):
-        with patch('httpx.get', side_effect=mock_httpx_get):
-            geocoder.geocode(address)
+    address = "wo;efuner;gjewrgpowefmiwe"
+    with pytest.raises(GeocodingError), patch("httpx.get", side_effect=mock_httpx_get):
+        geocoder.geocode(address)

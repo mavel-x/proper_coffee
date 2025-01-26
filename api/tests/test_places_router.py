@@ -1,15 +1,14 @@
 import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy.pool import StaticPool
-from sqlalchemy.orm import Session
-from sqlalchemy import create_engine
-
 from app.dependencies import SessionDropIn, get_geocoder
-from app.models import Base
 from app.main import app
+from app.models import Base
 from app.repositories import LocationRepository, PlaceRepository
-from app.schemata.location import Location, LocationDB
-from app.schemata.place import PlaceDBCreate
+from app.schemas.location import Location, LocationDB
+from app.schemas.place import PlaceDBCreate
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
+from sqlalchemy.pool import StaticPool
 
 
 def load_test_data(session: Session):
@@ -19,12 +18,14 @@ def load_test_data(session: Session):
     location2 = Location(latitude=52.543880, longitude=13.367920)
     location3 = Location(latitude=52.543861, longitude=13.377130)
     location4 = Location(latitude=52.482568, longitude=13.441025)
-    location_repo.add_all([
-        location1,
-        location2,
-        location3,
-        location4,
-    ])
+    location_repo.add_all(
+        [
+            location1,
+            location2,
+            location3,
+            location4,
+        ]
+    )
     coffee_shop1 = PlaceDBCreate(
         name="The Visit Coffee",
         address="Müllerstraße 28, 13353 Berlin",
@@ -67,6 +68,7 @@ def mock_geocoder():
     class MockGeocoder:
         def geocode(self, address):
             return Location(latitude=45.45, longitude=54.54)
+
     return MockGeocoder()
 
 
@@ -78,10 +80,12 @@ def client_fixture(session, mock_geocoder):
     def get_geocoder_override():
         return mock_geocoder
 
-    app.dependency_overrides.update({
-        SessionDropIn: get_session_override,
-        get_geocoder: get_geocoder_override,
-    })
+    app.dependency_overrides.update(
+        {
+            SessionDropIn: get_session_override,
+            get_geocoder: get_geocoder_override,
+        }
+    )
     client = TestClient(app)
     yield client
     app.dependency_overrides.clear()
@@ -94,15 +98,15 @@ def test_create_place(client: TestClient, session: Session):
     }
     response = client.post("/places/", json=place_data)
     assert response.status_code == 200
-    place_in_db = PlaceRepository(session).get_all(name=place_data['name'])[0]
-    assert response.json()['address'] == "123 Test Street"
+    place_in_db = PlaceRepository(session).get_all(name=place_data["name"])[0]
+    assert response.json()["address"] == "123 Test Street"
     assert place_in_db.address == "123 Test Street"
 
 
 def test_get_place(client: TestClient, session: Session):
     response = client.get("places/1")
     place = response.json()
-    assert place['name'] == "The Visit Coffee"
+    assert place["name"] == "The Visit Coffee"
 
 
 def test_get_place_404(client: TestClient, session: Session):

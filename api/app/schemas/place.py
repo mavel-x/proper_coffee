@@ -1,9 +1,9 @@
-from _decimal import Decimal
 from typing import Optional
 
+from _decimal import Decimal
 from pydantic import BaseModel
 
-from app.schemata.location import LocationDB, Location
+from app.schemas.location import Location, LocationDB
 
 
 class Place(BaseModel):
