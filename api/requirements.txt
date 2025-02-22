@@ -2,9 +2,12 @@ pydantic==2.10.6
 pydantic-settings==2.7.1
 fastapi==0.115.7
 uvicorn[standard]==0.34.0
-sqlalchemy==2.0.37
-pytest==8.3.4
 httpx==0.28.1
-psycopg2==2.9.10
+sqlalchemy==2.0.38
 geoalchemy2==0.17.0
+asyncpg==0.30.0
 shapely==2.0.6
+
+pytest==8.3.4
+pytest-asyncio==0.25.3
+respx==0.22.0

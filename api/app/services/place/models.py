@@ -1,15 +1,18 @@
 from typing import Optional
 
-from geoalchemy2 import Geography, WKBElement
+from geoalchemy2 import Geography, WKTElement
 from geoalchemy2.shape import to_shape
 from pydantic import BaseModel
 from sqlalchemy import TIMESTAMP, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
-from app.schemas.place import PlaceDB, PlaceDBCreate
+from app.core.schemas import Place, PlaceDB
 
 
 class Base(DeclarativeBase):
+    # https://docs.sqlalchemy.org/en/14/orm/extensions/asyncio.html#preventing-implicit-io-when-using-asyncsession
+    __mapper_args__ = {"eager_defaults": True}
+
     __abstract__ = True
     id: Mapped[int] = mapped_column(primary_key=True)
 
@@ -22,7 +25,7 @@ class Base(DeclarativeBase):
 
 
 class PlaceOrm(Base):
-    __tablename__ = "places"
+    __abstract__ = True
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     created_at: Mapped[Optional[str]] = mapped_column(
@@ -37,7 +40,7 @@ class PlaceOrm(Base):
     )
     name: Mapped[str] = mapped_column(nullable=False)
     address: Mapped[Optional[str]] = mapped_column(nullable=False)
-    location: Mapped[WKBElement] = mapped_column(
+    location: Mapped[Geography] = mapped_column(
         Geography(geometry_type="POINT", srid=4326),
         nullable=False,
         unique=True,
@@ -46,22 +49,20 @@ class PlaceOrm(Base):
     image_url: Mapped[Optional[str]] = mapped_column(default="")
     ig_url: Mapped[Optional[str]] = mapped_column(default="")
     website_url: Mapped[Optional[str]] = mapped_column(default="")
-    verified: Mapped[bool] = mapped_column(default=False)
+    editor_verified: Mapped[bool] = mapped_column(default=False)
+    user_verified: Mapped[bool] = mapped_column(default=False)
 
     @classmethod
-    def from_create_schema(cls, place: PlaceDBCreate) -> "PlaceOrm":
+    def from_create_schema(cls, place: Place) -> "PlaceOrm":
         place_dict = place.model_dump()
-        lat = place_dict.pop("latitude")
-        lon = place_dict.pop("longitude")
-        place_dict["location"] = f"SRID=4326;POINT({lon} {lat})"
+        place_dict["location"] = WKTElement(place.location.wkt, srid=4326)
         return cls(**place_dict)
 
     def to_db_schema(self) -> PlaceDB:
-        point = to_shape(self.location)  # Converts to Shapely Point
-        lat, lon = point.y, point.x
-
         place_dict = self.__dict__.copy()
-        place_dict["latitude"] = lat
-        place_dict["longitude"] = lon
-
+        place_dict["location"] = to_shape(self.location)
         return PlaceDB.model_validate(place_dict)
+
+
+class CoffeeOrm(PlaceOrm):
+    __tablename__ = "coffee"

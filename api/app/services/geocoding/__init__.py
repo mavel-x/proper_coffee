@@ -1,2 +1,1 @@
-from .geocoder import Geocoder
-from .exceptions import GeocodingError
+from .geocoding import GeocodingService
