@@ -1,6 +1,7 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
+from geopy.distance import geodesic
 
 from app.api.dependencies import get_coffee_repo, get_geocoding_service
 from app.core.schemas import (
@@ -39,9 +40,9 @@ v1_router = APIRouter(prefix="/coffee", tags=["coffee"])
     },
 )
 async def create_place(
-    place_create: PlaceCreate,
     geocoding_service: Annotated[GeocodingService, Depends(get_geocoding_service)],
     coffee_repo: Annotated[PlaceRepository, Depends(get_coffee_repo)],
+    place_create: PlaceCreate,
 ):
     location = await geocoding_service.geocode(place_create.address)
     place_with_location = Place.model_validate(place_create.model_dump() | {"location": location})
@@ -51,13 +52,19 @@ async def create_place(
 
 @v1_router.get("/nearest", response_model=list[PlaceWithDistance])
 async def get_nearest(
+    coffee_repo: Annotated[PlaceRepository, Depends(get_coffee_repo)],
     latitude: float,
     longitude: float,
-    coffee_repo: Annotated[PlaceRepository, Depends(get_coffee_repo)],
 ):
-    location = Location(latitude=latitude, longitude=longitude)
-    nearest_places = await coffee_repo.get_nearest(location)
-    return sorted(nearest_places, key=lambda place: place.distance_km)
+    user_location = Location(latitude=latitude, longitude=longitude)
+    nearest_places = await coffee_repo.get_nearest(user_location)
+
+    places_with_distance = []
+    for place in nearest_places:
+        distance_km = geodesic(user_location.to_point(), place.location.to_point()).km
+        places_with_distance.append(PlaceWithDistance.model_validate(place.model_dump() | {"distance_km": distance_km}))
+
+    return sorted(places_with_distance, key=lambda p: p.distance_km)
 
 
 @v1_router.get(
@@ -74,7 +81,7 @@ async def get_nearest(
     },
 )
 async def get_place(
-    place_id: int,
     coffee_repo: Annotated[PlaceRepository, Depends(get_coffee_repo)],
+    place_id: int,
 ):
     return await coffee_repo.get_by_id(place_id)

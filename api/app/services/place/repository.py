@@ -1,10 +1,9 @@
-from geopy.distance import geodesic
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import ObjectNotFoundError
-from app.core.schemas import Location, Place, PlaceDB, PlaceWithDistance
+from app.core.schemas import Location, Place, PlaceDB
 from app.services.place.models import PlaceOrm
 
 
@@ -40,19 +39,10 @@ class PlaceRepository:
             raise ObjectNotFoundError(f"Place with id {id_} not found")
         return place_orm.to_schema()
 
-    async def get_nearest(self, user_location: Location, limit: int = 3) -> list[PlaceWithDistance]:
+    async def get_nearest(self, user_location: Location, limit: int = 3) -> list[PlaceDB]:
         places_orm = await self.session.scalars(
             select(self.model)
             .order_by(self.model.location.distance_centroid(func.ST_GeomFromText(user_location.wkt)))
             .limit(limit)
         )
-
-        places_with_distance = []
-        for place_orm in places_orm:
-            place = place_orm.to_schema()
-            distance_km = geodesic(user_location.to_point(), place.location.to_point()).km
-            places_with_distance.append(
-                PlaceWithDistance.model_validate(place.model_dump() | {"distance_km": distance_km})
-            )
-
-        return places_with_distance
+        return [place.to_schema() for place in places_orm]
