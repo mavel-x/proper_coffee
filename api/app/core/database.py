@@ -15,7 +15,11 @@ class DatabaseSessionManagerException(Exception):
 class DatabaseSessionManager:
     def __init__(self, db_url: str, **engine_kwargs):
         self.engine = create_async_engine(db_url, **engine_kwargs)
-        self._session_maker = async_sessionmaker(autocommit=False, bind=self.engine, expire_on_commit=False)
+        self._session_maker = async_sessionmaker(
+            bind=self.engine,
+            autocommit=False,
+            expire_on_commit=False,
+        )
 
     async def close(self):
         if self.engine is None:

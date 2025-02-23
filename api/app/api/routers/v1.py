@@ -2,6 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse
+from shapely.geometry.point import Point
 
 from app.api.dependencies import get_coffee_repo, get_geocoding_service
 from app.core.schemas import Location, Place, PlaceCreate, PlaceCreatedResponse, PlaceWithDistance
@@ -34,5 +35,7 @@ async def get_place(place_id: int, place_repo: Annotated[PlaceRepository, Depend
 
 @v1_router.post("/nearest", response_model=list[PlaceWithDistance])
 async def get_nearest(user_location: Location, place_repo: Annotated[PlaceRepository, Depends(get_coffee_repo)]):
-    nearest_places = await place_repo.get_nearest(user_location)
-    return sorted(nearest_places, key=lambda place: place.distance_km)
+    location_point = Point(user_location.longitude, user_location.latitude)
+    nearest_places = await place_repo.get_nearest(location_point)
+    return nearest_places
+    # return sorted(nearest_places, key=lambda place: place.distance_km)

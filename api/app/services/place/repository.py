@@ -1,9 +1,15 @@
-from sqlalchemy import select
+from shapely.geometry.point import Point
+from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import ObjectNotFoundError
 from app.core.schemas import Place, PlaceDB
 from app.services.place.models import PlaceOrm
+
+
+class ObjectAlreadyExists(Exception):
+    pass
 
 
 class PlaceRepository:
@@ -20,7 +26,12 @@ class PlaceRepository:
     async def add_one(self, place: Place) -> int:
         place_orm = self.model.from_create_schema(place)
         self.session.add(place_orm)
-        await self.session.commit()
+        try:
+            await self.session.commit()
+        except IntegrityError as exc:
+            if "Key (location)" in exc.args[0]:
+                raise ObjectAlreadyExists("This location already exists") from exc
+            raise exc
         return place_orm.id
 
     async def get_by_id(self, id_: int) -> PlaceDB:
@@ -28,3 +39,9 @@ class PlaceRepository:
         if not place:
             raise ObjectNotFoundError(f"Place with id {id_} not found")
         return place.to_db_schema()
+
+    async def get_nearest(self, location: Point, limit: int = 3) -> list[PlaceDB]:
+        places = await self.session.scalars(
+            select(self.model).order_by(self.model.location.distance_centroid(func.Geometry(location.wkb))).limit(limit)
+        )
+        return [place.to_db_schema() for place in places]
