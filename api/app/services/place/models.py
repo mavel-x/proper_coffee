@@ -5,7 +5,7 @@ from geoalchemy2.shape import to_shape
 from sqlalchemy import TIMESTAMP, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
-from app.core.schemas import Place, PlaceDB
+from app.core.schemas import Location, PlaceCreateGeocoded, PlaceDB
 
 
 class PlaceOrm(DeclarativeBase):
@@ -36,14 +36,15 @@ class PlaceOrm(DeclarativeBase):
     user_verified: Mapped[bool] = mapped_column(default=False)
 
     @classmethod
-    def from_create_schema(cls, place: Place) -> "PlaceOrm":
+    def from_schema(cls, place: PlaceCreateGeocoded) -> "PlaceOrm":
         place_dict = place.model_dump()
         place_dict["location"] = WKBElement(place.location.wkb, srid=4326)
         return cls(**place_dict)
 
-    def to_db_schema(self) -> PlaceDB:
+    def to_schema(self) -> PlaceDB:
         place_dict = self.__dict__.copy()
-        place_dict["location"] = to_shape(self.location)
+        point = to_shape(self.location)
+        place_dict["location"] = Location.from_point(point)
         return PlaceDB.model_validate(place_dict)
 
 

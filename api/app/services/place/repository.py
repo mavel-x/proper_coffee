@@ -4,7 +4,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import ObjectNotFoundError
-from app.core.schemas import Place, PlaceDB
+from app.core.schemas import PlaceCreateGeocoded, PlaceDB
 from app.services.place.models import PlaceOrm
 
 
@@ -23,8 +23,8 @@ class PlaceRepository:
         self.model = model
         self.session = session
 
-    async def add_one(self, place: Place) -> int:
-        place_orm = self.model.from_create_schema(place)
+    async def add_one(self, place: PlaceCreateGeocoded) -> int:
+        place_orm = self.model.from_schema(place)
         self.session.add(place_orm)
         try:
             await self.session.commit()
@@ -35,13 +35,13 @@ class PlaceRepository:
         return place_orm.id
 
     async def get_by_id(self, id_: int) -> PlaceDB:
-        place: PlaceOrm = (await self.session.scalars(select(self.model).where(self.model.id == id_))).first()
-        if not place:
+        place_orm: PlaceOrm = (await self.session.scalars(select(self.model).where(self.model.id == id_))).first()
+        if not place_orm:
             raise ObjectNotFoundError(f"Place with id {id_} not found")
-        return place.to_db_schema()
+        return place_orm.to_schema()
 
     async def get_nearest(self, location: Point, limit: int = 3) -> list[PlaceDB]:
-        places = await self.session.scalars(
+        places_orm = await self.session.scalars(
             select(self.model).order_by(self.model.location.distance_centroid(func.Geometry(location.wkb))).limit(limit)
         )
-        return [place.to_db_schema() for place in places]
+        return [place.to_schema() for place in places_orm]
