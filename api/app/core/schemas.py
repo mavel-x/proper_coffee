@@ -1,16 +1,22 @@
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict
-from shapely import Point
+from geopy import Point
+from pydantic import BaseModel
 
 
 class Location(BaseModel):
     latitude: float
     longitude: float
 
-    @classmethod
-    def from_point(cls, point: Point) -> "Location":
-        return cls(latitude=point.y, longitude=point.x)
+    def to_point(self) -> Point:
+        return Point(
+            latitude=self.latitude,
+            longitude=self.longitude,
+        )
+
+    @property
+    def wkt(self) -> str:
+        return f"POINT ({self.longitude} {self.latitude})"
 
 
 class CreatedResponse(BaseModel):
@@ -30,12 +36,6 @@ class PlaceCreate(BaseModel):
     website_url: Optional[str] = ""
     editor_verified: Optional[bool] = False
     user_verified: Optional[bool] = False
-
-
-class PlaceCreateGeocoded(PlaceCreate):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-    location: Point
 
 
 class Place(PlaceCreate):

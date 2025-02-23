@@ -1,10 +1,10 @@
-from shapely.geometry.point import Point
+from geopy.distance import geodesic
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import ObjectNotFoundError
-from app.core.schemas import PlaceCreateGeocoded, PlaceDB
+from app.core.schemas import Location, Place, PlaceDB, PlaceWithDistance
 from app.services.place.models import PlaceOrm
 
 
@@ -23,7 +23,7 @@ class PlaceRepository:
         self.model = model
         self.session = session
 
-    async def add_one(self, place: PlaceCreateGeocoded) -> int:
+    async def add_one(self, place: Place) -> int:
         place_orm = self.model.from_schema(place)
         self.session.add(place_orm)
         try:
@@ -35,13 +35,24 @@ class PlaceRepository:
         return place_orm.id
 
     async def get_by_id(self, id_: int) -> PlaceDB:
-        place_orm: PlaceOrm = (await self.session.scalars(select(self.model).where(self.model.id == id_))).first()
+        place_orm = (await self.session.scalars(select(self.model).where(self.model.id == id_))).first()
         if not place_orm:
             raise ObjectNotFoundError(f"Place with id {id_} not found")
         return place_orm.to_schema()
 
-    async def get_nearest(self, location: Point, limit: int = 3) -> list[PlaceDB]:
+    async def get_nearest(self, user_location: Location, limit: int = 3) -> list[PlaceWithDistance]:
         places_orm = await self.session.scalars(
-            select(self.model).order_by(self.model.location.distance_centroid(func.Geometry(location.wkb))).limit(limit)
+            select(self.model)
+            .order_by(self.model.location.distance_centroid(func.ST_GeomFromText(user_location.wkt)))
+            .limit(limit)
         )
-        return [place.to_schema() for place in places_orm]
+
+        places_with_distance = []
+        for place_orm in places_orm:
+            place = place_orm.to_schema()
+            distance_km = geodesic(user_location.to_point(), place.location.to_point()).km
+            places_with_distance.append(
+                PlaceWithDistance.model_validate(place.model_dump() | {"distance_km": distance_km})
+            )
+
+        return places_with_distance

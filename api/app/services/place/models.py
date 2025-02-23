@@ -1,11 +1,11 @@
 from typing import Optional
 
-from geoalchemy2 import Geography, WKBElement
+from geoalchemy2 import Geography, WKTElement
 from geoalchemy2.shape import to_shape
 from sqlalchemy import TIMESTAMP, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
-from app.core.schemas import Location, PlaceCreateGeocoded, PlaceDB
+from app.core.schemas import Location, Place, PlaceDB
 
 
 class PlaceOrm(DeclarativeBase):
@@ -23,7 +23,7 @@ class PlaceOrm(DeclarativeBase):
     )
     name: Mapped[str] = mapped_column(nullable=False)
     address: Mapped[Optional[str]] = mapped_column(nullable=False)
-    location: Mapped[WKBElement] = mapped_column(
+    location: Mapped[WKTElement] = mapped_column(
         Geography(geometry_type="POINT", srid=4326),
         nullable=False,
         unique=True,
@@ -36,15 +36,18 @@ class PlaceOrm(DeclarativeBase):
     user_verified: Mapped[bool] = mapped_column(default=False)
 
     @classmethod
-    def from_schema(cls, place: PlaceCreateGeocoded) -> "PlaceOrm":
+    def from_schema(cls, place: Place) -> "PlaceOrm":
         place_dict = place.model_dump()
-        place_dict["location"] = WKBElement(place.location.wkb, srid=4326)
+        place_dict["location"] = WKTElement(place.location.wkt, srid=4326)
         return cls(**place_dict)
 
     def to_schema(self) -> PlaceDB:
         place_dict = self.__dict__.copy()
         point = to_shape(self.location)
-        place_dict["location"] = Location.from_point(point)
+        place_dict["location"] = Location(
+            latitude=point.y,
+            longitude=point.x,
+        )
         return PlaceDB.model_validate(place_dict)
 
 

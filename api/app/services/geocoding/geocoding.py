@@ -1,7 +1,7 @@
 import httpx
-from shapely.geometry import Point
 
 from app.core.exceptions import AddressNotFoundError, GeocoderUnavailableError
+from app.core.schemas import Location
 
 
 class GeocodingService:
@@ -11,7 +11,7 @@ class GeocodingService:
         self._api_key = api_key
         self._http_client = http_client
 
-    async def geocode(self, address) -> Point:
+    async def geocode(self, address) -> Location:
         params = {
             "text": address,
             "apiKey": self._api_key,
@@ -27,4 +27,7 @@ class GeocodingService:
             raise AddressNotFoundError(f"Unable to geocode address: {address}")
 
         properties = features[0]["properties"]
-        return Point(properties["lon"], properties["lat"])
+        return Location(
+            latitude=properties["lat"],
+            longitude=properties["lon"],
+        )

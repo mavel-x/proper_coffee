@@ -4,9 +4,9 @@ fastapi==0.115.7
 uvicorn[standard]==0.34.0
 httpx==0.28.1
 sqlalchemy==2.0.38
-geoalchemy2==0.17.0
+geoalchemy2[shapely]==0.17.0
 asyncpg==0.30.0
-shapely==2.0.6
+geopy==2.4.1
 
 pytest==8.3.4
 pytest-asyncio==0.25.3

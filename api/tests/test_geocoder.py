@@ -2,9 +2,9 @@ import httpx
 import pytest
 import pytest_asyncio
 from app.core.exceptions import AddressNotFoundError
+from app.core.schemas import Location
 from app.services.geocoding import GeocodingService
 from httpx import Response
-from shapely.geometry.point import Point
 
 
 @pytest_asyncio.fixture()
@@ -30,7 +30,10 @@ async def test_location_in_from_address(respx_mock, geocoder: GeocodingService):
     mock_endpoint = respx_mock.get(
         "https://api.geoapify.com/v1/geocode/search?text=M%C3%BCllerstra%C3%9Fe+28%2C+13353+Berlin&apiKey=test-key"
     ).respond(status_code=200, json=mock_features)
-    expected = Point(13.3580691, 52.5472567)
+    expected = Location(
+        latitude=52.5472567,
+        longitude=13.3580691,
+    )
     actual = await geocoder.geocode(address)
     assert actual == expected
     assert mock_endpoint.call_count == 1

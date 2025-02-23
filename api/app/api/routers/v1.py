@@ -1,14 +1,14 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
-from shapely.geometry.point import Point
 
 from app.api.dependencies import get_coffee_repo, get_geocoding_service
 from app.core.schemas import (
     CreatedResponse,
+    Location,
     Place,
     PlaceCreate,
-    PlaceCreateGeocoded,
+    PlaceWithDistance,
 )
 from app.services.geocoding import GeocodingService
 from app.services.place.repository import PlaceRepository
@@ -44,21 +44,20 @@ async def create_place(
     coffee_repo: Annotated[PlaceRepository, Depends(get_coffee_repo)],
 ):
     location = await geocoding_service.geocode(place_create.address)
-    place_with_location = PlaceCreateGeocoded.model_validate(place_create.model_dump() | {"location": location})
+    place_with_location = Place.model_validate(place_create.model_dump() | {"location": location})
     created_id = await coffee_repo.add_one(place_with_location)
     return {"id": created_id}
 
 
-@v1_router.get("/nearest", response_model=list[Place])
+@v1_router.get("/nearest", response_model=list[PlaceWithDistance])
 async def get_nearest(
     latitude: float,
     longitude: float,
-    place_repo: Annotated[PlaceRepository, Depends(get_coffee_repo)],
+    coffee_repo: Annotated[PlaceRepository, Depends(get_coffee_repo)],
 ):
-    location_point = Point(longitude, latitude)
-    nearest_places = await place_repo.get_nearest(location_point)
-    return nearest_places
-    # return sorted(nearest_places, key=lambda place: place.distance_km)
+    location = Location(latitude=latitude, longitude=longitude)
+    nearest_places = await coffee_repo.get_nearest(location)
+    return sorted(nearest_places, key=lambda place: place.distance_km)
 
 
 @v1_router.get(
@@ -74,5 +73,8 @@ async def get_nearest(
         },
     },
 )
-async def get_place(place_id: int, place_repo: Annotated[PlaceRepository, Depends(get_coffee_repo)]):
-    return await place_repo.get_by_id(place_id)
+async def get_place(
+    place_id: int,
+    coffee_repo: Annotated[PlaceRepository, Depends(get_coffee_repo)],
+):
+    return await coffee_repo.get_by_id(place_id)
