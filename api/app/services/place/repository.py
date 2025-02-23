@@ -2,13 +2,9 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import ObjectNotFoundError
+from app.core.exceptions import ObjectAlreadyExistsError, ObjectNotFoundError
 from app.core.schemas import Location, Place, PlaceDB
 from app.services.place.models import PlaceOrm
-
-
-class ObjectAlreadyExists(Exception):
-    pass
 
 
 class PlaceRepository:
@@ -29,7 +25,7 @@ class PlaceRepository:
             await self.session.commit()
         except IntegrityError as exc:
             if "Key (location)" in exc.args[0]:
-                raise ObjectAlreadyExists("This location already exists") from exc
+                raise ObjectAlreadyExistsError("This location already exists") from exc
             raise exc
         return place_orm.id
 

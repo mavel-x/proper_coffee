@@ -1,7 +1,11 @@
 from fastapi import FastAPI, HTTPException, status
 
-from app.core.exceptions import AddressNotFoundError, GeocoderUnavailableError, ObjectNotFoundError
-from app.services.place.repository import ObjectAlreadyExists
+from app.core.exceptions import (
+    AddressNotFoundError,
+    GeocoderUnavailableError,
+    ObjectAlreadyExistsError,
+    ObjectNotFoundError,
+)
 
 
 async def geocoder_exception_handler(request, exc):
@@ -22,5 +26,5 @@ async def object_not_found_exception_handler(request, exc):
 def register_exception_handlers(app: FastAPI):
     app.exception_handler(GeocoderUnavailableError)(geocoder_exception_handler)
     app.exception_handler(AddressNotFoundError)(address_not_found_exception_handler)
-    app.exception_handler(ObjectAlreadyExists)(address_not_found_exception_handler)
+    app.exception_handler(ObjectAlreadyExistsError)(address_not_found_exception_handler)
     app.exception_handler(ObjectNotFoundError)(object_not_found_exception_handler)
