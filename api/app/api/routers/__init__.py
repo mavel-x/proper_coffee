@@ -1,1 +1,1 @@
-from .v1 import v1_router
+from .coffee import coffee_router

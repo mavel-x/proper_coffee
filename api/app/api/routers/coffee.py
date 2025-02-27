@@ -14,10 +14,10 @@ from app.core.schemas import (
 from app.services.geocoding import GeocodingService
 from app.services.place.repository import PlaceRepository
 
-v1_router = APIRouter(prefix="/coffee", tags=["coffee"])
+coffee_router = APIRouter(prefix="/coffee", tags=["coffee"])
 
 
-@v1_router.post(
+@coffee_router.post(
     "/create",
     status_code=status.HTTP_201_CREATED,
     response_description="Created",
@@ -50,7 +50,7 @@ async def create_place(
     return {"id": created_id}
 
 
-@v1_router.get("/nearest", response_model=list[PlaceWithDistance])
+@coffee_router.get("/nearest", response_model=list[PlaceWithDistance])
 async def get_nearest(
     coffee_repo: Annotated[PlaceRepository, Depends(get_coffee_repo)],
     latitude: float,
@@ -67,7 +67,7 @@ async def get_nearest(
     return sorted(places_with_distance, key=lambda p: p.distance_km)
 
 
-@v1_router.get(
+@coffee_router.get(
     "/{place_id}",
     response_model=Place,
     responses={
