@@ -11,43 +11,28 @@ This project consists of separate services
 designed to run in their own containers: 
 - API
 - Chat bots
-- Under construction: admin panel
+
 
 ## Built with
 - [FastAPI](https://fastapi.tiangolo.com/) 
-- [SQLModel](https://sqlmodel.tiangolo.com/)
-- Official [PostgreSQL Docker image](https://hub.docker.com/_/postgres/)
 - [python-telegram-bot](https://python-telegram-bot.org/)
 - Geocoding by [Geoapify](https://www.geoapify.com/)
 - Test places from [European Coffee Trip](https://europeancoffeetrip.com/berlin/)
+- [Supabase](https://supabase.com/) with PostGIS
 
 ## How to Deploy
 Since the app images can be pulled from DockerHub, 
 all the files you need in the project dir are:
 - `docker-compose.yml`
 - `.env`
-- optional: `places_dump.sql` to populate the database (not provided)
+
 
 ### Environment variables
 #### Required:
-- `GEO_API`: Geoapify key
+- `GEOAPIFY_API_KEY`
 - `TG_TOKEN`: Telegram bot token
-- `POSTGRES_USER` 
-- `POSTGRES_PASSWORD`
+- `DB_URL`
 
-#### Optional:
-- `POSTGRES_PORT` (default `5432`)
-- `POSTGRES_DB` (default `places`)
-- `DB_TYPE`: either `sqlite` or `prod`, defaults to `prod`
-
-
-### Load data
-If you have a `places_dump.sql` file, use it to populate the database before 
-you launch the services (change `db_user` to the username you chose earlier):
-```shell
-docker compose up -d db
-cat places_dump.sql | docker compose exec -T db psql -U db_user -d places
-```
 
 ### Launch
 ```shell

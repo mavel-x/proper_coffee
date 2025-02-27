@@ -1,7 +1,8 @@
 from urllib.parse import urljoin
 
 import httpx
-from schemas import Place
+
+from app.schemas import Place
 
 
 class PlacesClient:

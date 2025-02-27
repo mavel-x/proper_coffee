@@ -4,7 +4,8 @@ import logging.handlers
 import sys
 
 from loguru import logger
-from settings import BASE_DIR
+
+from app.env_settings import BASE_DIR
 
 
 class InterceptHandler(logging.Handler):

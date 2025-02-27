@@ -1,14 +1,15 @@
 from enum import StrEnum, auto
 
-import bot_strings
 import httpx
-from logging_utils import configure_logging
 from loguru import logger
-from places_client import PlacesClient
-from schemas import Place
-from settings import Settings
 from telegram import KeyboardButton, ReplyKeyboardMarkup, Update
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
+
+from app import bot_strings
+from app.env_settings import Settings
+from app.logging_utils import configure_logging
+from app.places_client import PlacesClient
+from app.schemas import Place
 
 
 class Dependency(StrEnum):
