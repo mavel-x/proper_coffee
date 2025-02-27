@@ -2,17 +2,12 @@ from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+BASE_DIR = Path(__file__).parents[2]
+
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=BASE_DIR / ".env", extra="ignore")
+
     tg_token: str | None = None
-    api_host: str = '127.0.0.1'
-    api_port: int = 8000
-
-    model_config = SettingsConfigDict(
-        env_file=Path(__file__).parents[2] / '.env',
-        extra='ignore'
-    )
-
-    @property
-    def api_url(self):
-        return f'http://{self.api_host}:{self.api_port}/get-nearest/'
+    api_url: str
+    log_level: str = "INFO"

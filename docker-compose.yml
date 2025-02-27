@@ -1,34 +1,14 @@
-version: '3.7'
-
 services:
   api:
     image: ghcr.io/mavel-x/proper_coffee_api:latest
     environment:
-      - GEO_API=${GEO_API}
+      - GEOAPIFY_API_KEY=${GEOAPIFY_API_KEY}
       - DB_URL=${DB_URL}
-    volumes:
-      - ./container_data:/app/data
     restart: unless-stopped
-    depends_on:
-      - db
 
   bots:
     image: ghcr.io/mavel-x/proper_coffee_bot:latest
     environment:
       - TG_TOKEN=${TG_TOKEN}
-      - API_HOST=api
+      - API_URL=api/coffee/
     restart: unless-stopped
-
-  db:
-    image: postgres:15.4
-    environment:
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_PORT=${POSTGRES_PORT:-5432}
-      - POSTGRES_DB=${POSTGRES_DB:-places}
-    restart: unless-stopped
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
-volumes:
-  postgres_data:
