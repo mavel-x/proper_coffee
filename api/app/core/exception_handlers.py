@@ -23,8 +23,12 @@ async def object_not_found_exception_handler(request, exc):
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=exc.args[0]) from exc
 
 
+async def object_exists_exception_handler(request, exc):
+    raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=exc.args[0]) from exc
+
+
 def register_exception_handlers(app: FastAPI):
     app.exception_handler(GeocoderUnavailableError)(geocoder_exception_handler)
     app.exception_handler(AddressNotFoundError)(address_not_found_exception_handler)
-    app.exception_handler(ObjectAlreadyExistsError)(address_not_found_exception_handler)
+    app.exception_handler(ObjectAlreadyExistsError)(object_exists_exception_handler)
     app.exception_handler(ObjectNotFoundError)(object_not_found_exception_handler)
