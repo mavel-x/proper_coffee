@@ -1,41 +1,50 @@
-from unittest.mock import Mock, patch
-
+import httpx
 import pytest
-
-from app.services.geocoding import Geocoder, GeocodingError
-from app.schemata.location import Location
-
-from .geocoder_responses import features_mueller, features_garbage
-
-
-def mock_httpx_get(*args, **kwargs):
-    address = kwargs['params']['text']
-    mock_response = Mock()
-    if address == 'Müllerstraße 28, 13353 Berlin':
-        mock_response.json.return_value = {'features': features_mueller}
-    elif address == 'wo;efuner;gjewrgpowefmiwe':
-        mock_response.json.return_value = {'features': features_garbage}
-    else:
-        mock_response.json.return_value = {'features': []}
-    mock_response.status_code = 200
-    return mock_response
+import pytest_asyncio
+from app.core.exceptions import AddressNotFoundError
+from app.core.schemas import Location
+from app.services.geocoding import GeocodingService
+from httpx import Response
 
 
-@pytest.fixture()
-def geocoder():
-    return Geocoder(api_key='test-key')
+@pytest_asyncio.fixture()
+async def geocoder():
+    async with httpx.AsyncClient() as http_client:
+        yield GeocodingService(api_key="test-key", http_client=http_client)
 
 
-def test_location_in_from_address(geocoder: Geocoder):
-    address = 'Müllerstraße 28, 13353 Berlin'
-    expected = Location(latitude=52.5472567, longitude=13.3580691)
-    with patch('httpx.get', side_effect=mock_httpx_get):
-        actual = geocoder.geocode(address)
-    assert expected == actual
+@pytest.mark.asyncio
+async def test_location_in_from_address(respx_mock, geocoder: GeocodingService):
+    address = "Müllerstraße 28, 13353 Berlin"
+    mock_features = {
+        "features": [
+            {
+                "type": "Feature",
+                "properties": {
+                    "lon": 13.3580691,
+                    "lat": 52.5472567,
+                },
+            }
+        ]
+    }
+    mock_endpoint = respx_mock.get(
+        "https://api.geoapify.com/v1/geocode/search?text=M%C3%BCllerstra%C3%9Fe+28%2C+13353+Berlin&apiKey=test-key"
+    ).respond(status_code=200, json=mock_features)
+    expected = Location(
+        latitude=52.5472567,
+        longitude=13.3580691,
+    )
+    actual = await geocoder.geocode(address)
+    assert actual == expected
+    assert mock_endpoint.call_count == 1
 
 
-def test_location_in_from_address_invalid(geocoder: Geocoder):
-    address = 'wo;efuner;gjewrgpowefmiwe'
-    with pytest.raises(GeocodingError):
-        with patch('httpx.get', side_effect=mock_httpx_get):
-            geocoder.geocode(address)
+@pytest.mark.asyncio
+async def test_location_in_from_address_invalid(respx_mock, geocoder: GeocodingService):
+    address = "wo;efuner;gjewrgpowefmiwe"
+    mock_features = {"features": []}
+    respx_mock.get("https://api.geoapify.com/v1/geocode/search?text=wo;efuner;gjewrgpowefmiwe&apiKey=test-key").mock(
+        return_value=Response(status_code=200, json=mock_features)
+    )
+    with pytest.raises(AddressNotFoundError):
+        await geocoder.geocode(address)
