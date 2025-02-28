@@ -10,5 +10,7 @@ services:
     image: ghcr.io/mavel-x/proper_coffee_bot:latest
     environment:
       - TG_TOKEN=${TG_TOKEN}
-      - API_URL=api/coffee/
+      - API_URL=http://api:8000/coffee/
     restart: unless-stopped
+    depends_on:
+      - api
